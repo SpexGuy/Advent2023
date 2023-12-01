@@ -10,8 +10,46 @@ const gpa = util.gpa;
 
 const data = @embedFile("data/day01.txt");
 
+const numbers = [_][]const u8 { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
+
 pub fn main() !void {
-    
+    var lines = tokenizeAny(u8, data, "\r\n");
+    var p1_sum: i64 = 0;
+    var p2_sum: i64 = 0;
+    while (lines.next()) |line| {
+        if (line.len == 0) continue;
+        var first_idx: ?usize = null;
+        var first_val: ?i64 = null;
+        var last_idx: ?usize = null;
+        var last_val: ?i64 = null;
+        for (line, 0..) |char, i| {
+            if (char >= '0' and char <= '9') {
+                if (first_idx == null) {
+                    first_idx = i;
+                    first_val = char - '0';
+                }
+                last_idx = i;
+                last_val = char - '0';
+            }
+        }
+        p1_sum += first_val.? * 10 + last_val.?;
+
+        for (numbers, 1..) |str, i| {
+            if (std.mem.indexOf(u8, line, str)) |idx| {
+                if (idx < first_idx.?) {
+                    first_idx = idx;
+                    first_val = @intCast(i);
+                }
+                const last = std.mem.lastIndexOf(u8, line, str).?;
+                if (last > last_idx.?) {
+                    last_idx = last;
+                    last_val = @intCast(i);
+                }
+            }
+        }
+        p2_sum += first_val.? * 10 + last_val.?;
+    }
+    std.debug.print("part1: {}, part2: {}\n", .{p1_sum, p2_sum});
 }
 
 // Useful stdlib functions
