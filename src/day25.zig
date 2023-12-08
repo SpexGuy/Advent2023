@@ -11,7 +11,18 @@ const gpa = util.gpa;
 const data = @embedFile("data/day25.txt");
 
 pub fn main() !void {
-    
+    var p1: i64 = 0; _ = &p1;
+    var p2: i64 = 0; _ = &p2;
+    var lines = splitSca(u8, data, '\n');
+    while (lines.next()) |line| {
+
+    }
+
+    print("p1: {}, p2: {}\n", .{p1, p2});
+}
+
+fn parseDec(val: []const u8) i64 {
+    return parseInt(i64, val, 10) catch unreachable;
 }
 
 // Useful stdlib functions
