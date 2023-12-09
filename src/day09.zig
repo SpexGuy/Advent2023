@@ -11,12 +11,13 @@ const gpa = util.gpa;
 const data = @embedFile("data/day09.txt");
 
 pub fn main() !void {
-    var p1: i64 = 0; _ = &p1;
-    var p2: i64 = 0; _ = &p2;
+    var p1: i64 = 0;
+    var p2: i64 = 0;
     var lines = tokenizeSca(u8, data, '\n');
+    var sequence = List(i64).init(gpa);
     while (lines.next()) |line| {
+        sequence.items.len = 0;
         var parts = tokenizeSca(u8, line, ' ');
-        var sequence = List(i64).init(gpa);
         while (parts.next()) |part| {
             const num = parseDec(part);
             sequence.append(num) catch unreachable;
@@ -26,7 +27,7 @@ pub fn main() !void {
         p2 += prevnext[0];
     }
 
-    print("p1: {}, p2: {}\n", .{p1, p2});
+    print("p1: {}, p2: {}\n", .{ p1, p2 });
 }
 
 fn extrapolate(sequence: []const i64) [2]i64 {
@@ -34,21 +35,20 @@ fn extrapolate(sequence: []const i64) [2]i64 {
     const deltas = gpa.alloc(i64, sequence.len - 1) catch unreachable;
     defer gpa.free(deltas);
     var has_nonzero = false;
-    for (0..sequence.len-1) |i| {
-        deltas[i] = sequence[i+1] - sequence[i];
+    for (0..sequence.len - 1) |i| {
+        deltas[i] = sequence[i + 1] - sequence[i];
         if (deltas[i] != 0) has_nonzero = true;
     }
-    if (!has_nonzero) return .{sequence[0], sequence[sequence.len-1]};
-    const prevnext = extrapolate(deltas);
+    const prevnext: [2]i64 = if (has_nonzero) extrapolate(deltas) else .{ 0, 0 };
     return .{
         sequence[0] - prevnext[0],
-        sequence[sequence.len-1] + prevnext[1],
+        sequence[sequence.len - 1] + prevnext[1],
     };
 }
 
 fn parseDec(val: []const u8) i64 {
     return parseInt(i64, val, 10) catch |err| {
-        print("Not a decimal number: '{s}' ({})\n", .{val, err});
+        print("Not a decimal number: '{s}' ({})\n", .{ val, err });
         unreachable;
     };
 }
