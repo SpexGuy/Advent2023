@@ -11,14 +11,44 @@ const gpa = util.gpa;
 const data = @embedFile("data/day13.txt");
 
 pub fn main() !void {
-    var p1: i64 = 0; _ = &p1;
-    var p2: i64 = 0; _ = &p2;
-    var lines = splitSca(u8, data, '\n');
-    while (lines.next()) |line| {
-
+    var p1: usize = 0;
+    var p2: usize = 0;
+    var grids = splitSeq(u8, data, "\n\n");
+    while (grids.next()) |grid| {
+        const width = indexOf(u8, grid, '\n').?;
+        const pitch = width + 1;
+        const height = @divFloor(grid.len + 1, pitch);
+        for (0..height - 1) |y| {
+            var errs: usize = 0;
+            match: for (0..@min(y + 1, height - 1 - y)) |offset| {
+                for (0..width) |x| {
+                    if (grid[(y - offset) * pitch + x] != grid[(y + 1 + offset) * pitch + x]) {
+                        errs += 1;
+                        if (errs > 1) break :match;
+                    }
+                }
+            } else {
+                if (errs == 0) p1 += (y + 1) * 100;
+                if (errs == 1) p2 += (y + 1) * 100;
+            }
+        }
+        for (0..width - 1) |x| {
+            var errs: usize = 0;
+            match: for (0..@min(x + 1, width - 1 - x)) |offset| {
+                for (0..height) |y| {
+                    if (grid[y * pitch + x - offset] != grid[y * pitch + x + 1 + offset]) {
+                        errs += 1;
+                        if (errs > 1) break :match;
+                    }
+                }
+            } else {
+                if (errs == 0) p1 += (x + 1);
+                if (errs == 1) p2 += (x + 1);
+            }
+        }
     }
 
-    print("p1: {}, p2: {}\n", .{p1, p2});
+    print("p1: {}, p2: {}\n", .{ p1, p2 });
 }
 
 fn parseDec(val: []const u8) i64 {
