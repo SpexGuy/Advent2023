@@ -7,6 +7,7 @@ const BitSet = std.DynamicBitSet;
 
 const util = @import("util.zig");
 const gpa = util.gpa;
+const abs = util.abs;
 const Grid = util.Grid;
 const Dir = util.Dir;
 const NeighborCollector = util.NeighborCollector;
@@ -40,7 +41,7 @@ pub fn main() !void {
 
     }
 
-    print("p1: {}, p2: {}\n", .{p1, p2});
+    print("p1: {}, p2: {}\n", .{ p1, p2 });
 }
 
 fn parseDec(comptime T: type, val: []const u8) T {
