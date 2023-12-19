@@ -7,22 +7,44 @@ const BitSet = std.DynamicBitSet;
 
 const util = @import("util.zig");
 const gpa = util.gpa;
+const Grid = util.Grid;
+const Dir = util.Dir;
+const NeighborCollector = util.NeighborCollector;
 
 const data = @embedFile("data/day$.txt");
 
+const State = struct {
+
+};
+
+const Context = struct {
+
+    pub fn isTerminal(c: *@This(), s: State) bool {
+        _ = c;
+        _ = s;
+        return false;
+    }
+    pub fn expand(c: *@This(), nc: NeighborCollector(State)) void {
+        _ = c;
+        _ = nc;
+    }
+};
+
 pub fn main() !void {
-    var p1: i64 = 0; _ = &p1;
-    var p2: i64 = 0; _ = &p2;
+    var p1: usize = 0; _ = &p1;
+    var p2: usize = 0; _ = &p2;
+    // const g = try Grid.load(data, 1, '#');
     var lines = splitSca(u8, data, '\n');
     while (lines.next()) |line| {
+        if (line.len == 0) break;
 
     }
 
     print("p1: {}, p2: {}\n", .{p1, p2});
 }
 
-fn parseDec(val: []const u8) i64 {
-    return parseInt(i64, val, 10) catch unreachable;
+fn parseDec(comptime T: type, val: []const u8) T {
+    return parseInt(T, val, 10) catch unreachable;
 }
 
 // Useful stdlib functions
