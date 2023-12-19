@@ -271,7 +271,7 @@ pub const AreaCounter = struct {
         return @intCast(abs(ac.areaish) + @divExact(ac.perimeter, 2) + 1);
     }
     pub fn areaExclusive(ac: AreaCounter) usize {
-        return ac.areaInclusive() - ac.perimeter;
+        return ac.areaInclusive() - @as(usize, @intCast(ac.perimeter));
     }
 };
 

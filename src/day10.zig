@@ -7,18 +7,55 @@ const BitSet = std.DynamicBitSet;
 
 const util = @import("util.zig");
 const gpa = util.gpa;
+const Grid = util.Grid;
+const Dir = util.Dir;
 
 const data = @embedFile("data/day10.txt");
 
-pub fn main() !void {
-    var p1: i64 = 0; _ = &p1;
-    var p2: i64 = 0; _ = &p2;
-    var lines = splitSca(u8, data, '\n');
-    while (lines.next()) |line| {
+fn offset(pos: usize, dir: usize, pitch: usize) usize {
+    return switch (dir) {
+        .right => pos + 1,
+        .up => pos - pitch,
+        .left => pos - 1,
+        .down => pos + pitch,
+        else => unreachable,
+    };
+}
 
+const starters = [_][3]u8{
+    "7-J".*,
+    "F|7".*,
+    "L-F".*,
+    "J|L".*,
+};
+
+pub fn main() !void {
+    const g = try Grid.load(data, 1, '.');
+
+    const start = indexOf(u8, g.cells, 'S').?;
+    var pos = start;
+    var dir: u2 = for (0..4) |d| {
+        const moved = g.step(start, @intCast(d));
+        if (indexOf(u8, &starters[d], g.cells[moved]) != null) {
+            pos = moved;
+            break @intCast(d);
+        }
+    } else unreachable;
+
+    var ac = util.AreaCounter{};
+    ac.edge(dir, 1);
+
+    while (g.cells[pos] != 'S') {
+        const bend = indexOf(u8, &starters[dir], g.cells[pos]).?;
+        dir = @truncate(dir + bend + 3);
+        pos = g.step(pos, dir);
+        ac.edge(dir, 1);
     }
 
-    print("p1: {}, p2: {}\n", .{p1, p2});
+    const p1 = @divExact(ac.perimeter, 2);
+    const p2 = ac.areaExclusive();
+
+    print("p1: {}, p2: {}\n", .{ p1, p2 });
 }
 
 fn parseDec(val: []const u8) i64 {
