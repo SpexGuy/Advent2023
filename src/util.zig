@@ -68,6 +68,12 @@ pub const Grid = struct {
             Dir.down => pos + g.pitch * steps,
         };
     }
+
+    pub fn dupe(g: *const Grid) Grid {
+        var result = g.*;
+        result.cells = gpa.dupe(u8, g.cells) catch unreachable;
+        return result;
+    }
 };
 
 pub const Dir = opaque {
@@ -271,6 +277,40 @@ pub const AreaCounter = struct {
 
 pub fn abs(val: anytype) @TypeOf(val) {
     return if (val < 0) -val else val;
+}
+
+pub fn ConstCast(comptime T: type) type {
+    var ti: std.builtin.Type = @typeInfo(T);
+    switch (ti) {
+        .Pointer => |*p| {
+            p.child = ConstCast(p.child);
+            p.is_const = false;
+        },
+        .Array => |*a| {
+            a.child = ConstCast(a.child);
+        },
+        .Optional => |*o| {
+            o.child = ConstCast(o.child);
+        },
+        .Vector => |*v| {
+            v.child = ConstCast(v.child);
+        },
+        else => return T,
+    }
+    return @Type(ti);
+}
+
+pub fn constCast(val: anytype) ConstCast(@TypeOf(val)) {
+    if (@typeInfo(@TypeOf(val)) == .Optional) {
+        if (val == null) return null;
+        return constCast(val.?);
+    }
+
+    if (@typeInfo(@TypeOf(val)) != .Pointer) @compileError("constCast must operate on a pointer or optional pointer");
+    if (@typeInfo(@TypeOf(val)).Pointer.size == .Slice) {
+        return constCast(val.ptr)[0..val.len];
+    }
+    return @ptrFromInt(@intFromPtr(val));
 }
 
 // Useful stdlib functions
