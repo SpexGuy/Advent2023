@@ -7,22 +7,35 @@ const BitSet = std.DynamicBitSet;
 
 const util = @import("util.zig");
 const gpa = util.gpa;
+const Dir = util.Dir;
 
 const data = @embedFile("data/day18.txt");
 
 pub fn main() !void {
-    var p1: i64 = 0; _ = &p1;
-    var p2: i64 = 0; _ = &p2;
-    var lines = splitSca(u8, data, '\n');
-    while (lines.next()) |line| {
+    var p1_ac = util.AreaCounter{};
+    var p2_ac = util.AreaCounter{};
 
+    var lines = tokenizeSca(u8, data, '\n');
+    while (lines.next()) |line| {
+        var parts = tokenizeAny(u8, line, " (#)");
+        const dir1: u2 = @intCast(indexOf(u8, "RULD", parts.next().?[0]).?);
+        const dist1 = parseDec(parts.next().?);
+        const color = parts.next().?;
+        const dir2: u2 = @intCast(indexOf(u8, "0321", color[color.len - 1]).?);
+        const dist2 = try parseInt(usize, color[0 .. color.len - 1], 16);
+
+        p1_ac.edge(dir1, dist1);
+        p2_ac.edge(dir2, dist2);
     }
 
-    print("p1: {}, p2: {}\n", .{p1, p2});
+    const p1 = p1_ac.areaInclusive();
+    const p2 = p2_ac.areaInclusive();
+
+    print("p1: {}, p2: {}\n", .{ p1, p2 });
 }
 
-fn parseDec(val: []const u8) i64 {
-    return parseInt(i64, val, 10) catch unreachable;
+fn parseDec(val: []const u8) usize {
+    return parseInt(usize, val, 10) catch unreachable;
 }
 
 // Useful stdlib functions

@@ -6,6 +6,8 @@ const StrMap = std.StringHashMap;
 const BitSet = std.DynamicBitSet;
 const Str = []const u8;
 
+const util = @This();
+
 var gpa_impl = std.heap.GeneralPurposeAllocator(.{}){};
 pub const gpa = gpa_impl.allocator();
 
@@ -221,6 +223,54 @@ test "search" {
     //     print("({}, {})", .{result.states.keys()[id], result.states.values()[id].cost});
     // }
     // print("]\n", .{});
+}
+
+pub const AreaCounter = struct {
+    x: i64 = 0,
+    y: i64 = 0,
+    perimeter: i64 = 0,
+    areaish: i64 = 0,
+
+    pub fn edge(ac: *AreaCounter, dir: u2, len: usize) void {
+        // zig fmt: off
+        const slen: i64 = @intCast(len);
+        switch (dir) {
+            Dir.left  => { ac.x -= slen; ac.areaish -= ac.y * slen; },
+            Dir.right => { ac.x += slen; ac.areaish += ac.y * slen; },
+            Dir.down  => { ac.y += slen; },
+            Dir.up    => { ac.y -= slen; },
+        }
+        ac.perimeter += slen;
+        // zig fmt: on
+    }
+    pub fn horzEdgeTo(ac: *AreaCounter, x: i64) void {
+        ac.perimeter += abs(x - ac.x);
+        ac.areaish += (x - ac.x) * ac.y;
+        ac.x = x;
+    }
+    pub fn vertEdgeTo(ac: *AreaCounter, y: i64) void {
+        ac.perimeter += abs(y - ac.y);
+        ac.y = y;
+    }
+    pub fn edgeTo(ac: *AreaCounter, x: i64, y: i64) void {
+        if (ac.x == x) {
+            ac.vertEdgeTo(y);
+        } else if (ac.y == y) {
+            ac.horzEdgeTo(x);
+        } else unreachable; // Can't handle diagonal edges
+    }
+
+    pub fn areaInclusive(ac: AreaCounter) usize {
+        assert(ac.x == 0 and ac.y == 0);
+        return @intCast(abs(ac.areaish) + @divExact(ac.perimeter, 2) + 1);
+    }
+    pub fn areaExclusive(ac: AreaCounter) usize {
+        return ac.areaInclusive() - ac.perimeter;
+    }
+};
+
+pub fn abs(val: anytype) @TypeOf(val) {
+    return if (val < 0) -val else val;
 }
 
 // Useful stdlib functions
