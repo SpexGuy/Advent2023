@@ -279,6 +279,19 @@ pub fn abs(val: anytype) @TypeOf(val) {
     return if (val < 0) -val else val;
 }
 
+pub fn gcd(ia: usize, ib: usize) usize {
+    var a = ia; var b = ib;
+    while (a != b) {
+        if (a > b) { a -= b; }
+        else { b -= a; }
+    }
+    return a;
+}
+
+pub fn lcm(a: usize, b: usize) usize {
+    return @divExact(a * b, gcd(a, b));
+}
+
 pub fn ConstCast(comptime T: type) type {
     var ti: std.builtin.Type = @typeInfo(T);
     switch (ti) {

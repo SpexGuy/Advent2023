@@ -79,19 +79,6 @@ fn setupIterator(it: *Iterator, start_state: State, moves: []const u8, map: Map(
     }
 }
 
-fn gcd(ia: usize, ib: usize) usize {
-    var a = ia; var b = ib;
-    while (a != b) {
-        if (a > b) { a -= b; }
-        else { b -= a; }
-    }
-    return a;
-}
-
-fn lcm(a: usize, b: usize) usize {
-    return @divExact(a * b, gcd(a, b));
-}
-
 pub fn main() !void {
     var map = Map(State, [2]State).init(gpa);
 
@@ -113,7 +100,7 @@ pub fn main() !void {
     const iters = try gpa.alloc(Iterator, states.items.len);
     for (iters, states.items) |*it, state| {
         setupIterator(it, state, moves, map);
-        p2 = lcm(p2, it.period);
+        p2 = util.lcm(p2, it.period);
     }
 
     print("p1: {}, p2: {}\n", .{p1, p2});
