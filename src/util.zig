@@ -76,6 +76,10 @@ pub const Grid = struct {
     }
 };
 
+pub fn absDiff(a: usize, b: usize) usize {
+    return if (a < b) b - a else a - b;
+}
+
 pub const Dir = opaque {
     pub const right: u2 = 0;
     pub const up: u2 = 1;
