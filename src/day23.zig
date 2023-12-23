@@ -14,33 +14,135 @@ const NeighborCollector = util.NeighborCollector;
 
 const data = @embedFile("data/day23.txt");
 
-const State = struct {
+const gates = ">^<v";
 
+const Edge = struct {
+    len: usize,
+    end: usize,
+    reverse: bool = false,
 };
 
-const Context = struct {
-
-    pub fn isTerminal(c: *@This(), s: State) bool {
-        _ = c;
-        _ = s;
-        return false;
-    }
-    pub fn expand(c: *@This(), nc: NeighborCollector(State)) void {
-        _ = c;
-        _ = nc;
-    }
+const Junction = struct {
+    edges: std.ArrayListUnmanaged(Edge) = .{},
+    longest: ?usize = null,
 };
+
+const Graph = std.AutoArrayHashMap(usize, Junction);
+
+fn followEdge(g: *Grid, in_pos: usize, in_dir: u2) struct { len: usize, pos: usize, dir: u2 } {
+    var pos = in_pos;
+    var dir = in_dir;
+    var len: usize = 1;
+    while (true) {
+        len += 1;
+        for ([_]u2{ dir, Dir.ccw(dir), Dir.cw(dir) }) |d| {
+            const np = g.step(pos, d);
+            switch (g.cells[np]) {
+                '#' => {},
+                '.' => {
+                    pos = np;
+                    dir = d;
+                    break;
+                },
+                'E' => {
+                    return .{
+                        .len = len,
+                        .pos = np,
+                        .dir = d,
+                    };
+                },
+                else => |c| {
+                    assert(c == gates[d]);
+                    return .{
+                        .len = len + 1,
+                        .pos = g.step(np, d),
+                        .dir = d,
+                    };
+                },
+            }
+        } else unreachable;
+    }
+}
+
+fn exploreMap(g: *Grid, graph: *Graph, pos: usize) usize {
+    const gop = graph.getOrPut(pos) catch unreachable;
+    if (gop.found_existing) {
+        return gop.index;
+    }
+    gop.value_ptr.* = .{};
+    for (0..4) |dir| {
+        const indir = g.step(pos, @intCast(dir));
+        if (g.cells[indir] == gates[dir]) {
+            const info = followEdge(g, indir, @intCast(dir));
+            const node = exploreMap(g, graph, info.pos);
+            graph.values()[gop.index].edges.append(
+                gpa,
+                .{ .len = info.len, .end = node },
+            ) catch unreachable;
+            graph.values()[node].edges.append(
+                gpa,
+                .{ .len = info.len, .end = gop.index, .reverse = true },
+            ) catch unreachable;
+        }
+    }
+
+    return gop.index;
+}
+
+fn findLongestPath(vals: []Junction, node: usize) usize {
+    if (vals[node].longest) |len| return len;
+
+    var len: usize = 0;
+    for (vals[node].edges.items) |edge| {
+        if (!edge.reverse) {
+            len = @max(len, findLongestPath(vals, edge.end) + edge.len);
+        }
+    }
+    assert(len != 0);
+    vals[node].longest = len;
+    return len;
+}
+
+fn bit(node: usize) u64 {
+    return @as(u64, 1) << @intCast(node);
+}
+
+fn findLongestPath2(vals: []Junction, node: usize, in_visited: u64) ?usize {
+    if (node == 1) return 0;
+    if (in_visited & bit(node) != 0) return null;
+    const visited = in_visited | bit(node);
+    var max: ?usize = null;
+    for (vals[node].edges.items) |edge| {
+        if (findLongestPath2(vals, edge.end, visited)) |len| {
+            max = @max(max orelse 0, edge.len + len);
+        }
+    }
+    return max;
+}
 
 pub fn main() !void {
-    var p1: usize = 0; _ = &p1;
-    var p2: usize = 0; _ = &p2;
-    // const g = try Grid.load(data, 1, '#');
-    var lines = splitSca(u8, data, '\n');
-    while (lines.next()) |line| {
-        if (line.len == 0) break;
+    var g = try Grid.load(data, 1, '#');
+    const start = g.topLeft() + 1;
+    const end = g.botRight() - 1;
+    g.cells[start] = 'v';
+    g.cells[end] = 'E';
 
-    }
+    var graph = Graph.init(gpa);
+    graph.put(start, .{}) catch unreachable;
+    graph.put(end, .{ .longest = 0 }) catch unreachable;
+    const info = followEdge(&g, start + g.pitch, Dir.down);
+    const node = exploreMap(&g, &graph, info.pos);
+    graph.values()[0].edges.append(
+        gpa,
+        .{ .len = info.len, .end = node },
+    ) catch unreachable;
+    graph.values()[node].edges.append(
+        gpa,
+        .{ .len = info.len, .end = 0, .reverse = true },
+    ) catch unreachable;
 
+    const p1 = findLongestPath(graph.values(), 0);
+    const p2 = findLongestPath2(graph.values(), 0, 0).?;
     print("p1: {}, p2: {}\n", .{ p1, p2 });
 }
 
