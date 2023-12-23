@@ -69,6 +69,23 @@ pub const Grid = struct {
         };
     }
 
+    pub fn factor(g: Grid, pos: usize) [2]usize {
+        return .{
+            pos % g.pitch - g.padding,
+            pos / g.pitch - g.padding,
+        };
+    }
+
+    pub fn index(g: Grid, x: usize, y: usize) usize {
+        return g.topLeft() + y * g.pitch + x;
+    }
+
+    pub fn manhattanDist(g: Grid, a: usize, b: usize) usize {
+        const ap = g.factor(a);
+        const bp = g.factor(b);
+        return absDiff(ap[0], bp[0]) + absDiff(ap[1], bp[1]);
+    }
+
     pub fn dupe(g: *const Grid) Grid {
         var result = g.*;
         result.cells = gpa.dupe(u8, g.cells) catch unreachable;
@@ -284,10 +301,14 @@ pub fn abs(val: anytype) @TypeOf(val) {
 }
 
 pub fn gcd(ia: usize, ib: usize) usize {
-    var a = ia; var b = ib;
+    var a = ia;
+    var b = ib;
     while (a != b) {
-        if (a > b) { a -= b; }
-        else { b -= a; }
+        if (a > b) {
+            a -= b;
+        } else {
+            b -= a;
+        }
     }
     return a;
 }

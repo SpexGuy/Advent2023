@@ -15,10 +15,12 @@ const NeighborCollector = util.NeighborCollector;
 const data = @embedFile("data/day21.txt");
 
 const State = struct {
-
+    pos: usize,
 };
 
 const Context = struct {
+    g: *const Grid,
+    distance: usize,
 
     pub fn isTerminal(c: *@This(), s: State) bool {
         _ = c;
@@ -26,20 +28,78 @@ const Context = struct {
         return false;
     }
     pub fn expand(c: *@This(), nc: NeighborCollector(State)) void {
-        _ = c;
-        _ = nc;
+        if (nc.cost >= c.distance) return;
+        for ([_]usize{
+            nc.state.pos + 1,
+            nc.state.pos - 1,
+            nc.state.pos + c.g.pitch,
+            nc.state.pos - c.g.pitch,
+        }) |pos| {
+            if (c.g.cells[pos] == '.') {
+                nc.add(.{ .pos = pos }, 1);
+            }
+        }
     }
 };
 
-pub fn main() !void {
-    var p1: usize = 0; _ = &p1;
-    var p2: usize = 0; _ = &p2;
-    // const g = try Grid.load(data, 1, '#');
-    var lines = splitSca(u8, data, '\n');
-    while (lines.next()) |line| {
-        if (line.len == 0) break;
-
+fn countSpots(g: *const Grid, start: usize, distance: usize) [2]usize {
+    assert(g.cells[start] == '.');
+    var ctx = Context{ .g = g, .distance = distance };
+    const res = util.search(State, Context, &ctx, .{ .pos = start });
+    var totals = [2]usize{ 0, 0 };
+    for (res.states.values()) |info| {
+        totals[info.cost & 1] += 1;
     }
+    return totals;
+}
+
+pub fn main() !void {
+    const g = try Grid.load(data, 1, '#');
+    const pos = indexOf(u8, g.cells, 'S').?;
+    g.cells[pos] = '.';
+    const posxy = g.factor(pos);
+    assert(posxy[0] == posxy[1]);
+    assert(g.width == g.height);
+    assert(g.width & 1 == 1);
+    assert(posxy[0] == g.width / 2);
+    const bigdist = 26501365;
+
+    const p1 = countSpots(&g, pos, 64)[0];
+
+    const out_parity = 1;
+    const in_parity = 0;
+    const end_parity = 0;
+    const inside = (bigdist - posxy[0] - 1) % g.width;
+    const incorner = inside - posxy[0] - 1;
+    const outcorner = incorner + g.width;
+    const gridlen = (bigdist - posxy[0] - 1) / g.width;
+
+    assert(incorner & 1 == in_parity);
+    assert(outcorner & 1 == out_parity);
+    assert(inside & 1 == end_parity);
+    const full = countSpots(&g, pos, 1000000000);
+    const left = countSpots(&g, g.index(g.width - 1, posxy[1]), inside);
+    const right = countSpots(&g, g.index(0, posxy[1]), inside);
+    const up = countSpots(&g, g.index(posxy[0], 0), inside);
+    const down = countSpots(&g, g.index(posxy[0], g.height - 1), inside);
+    const tl_in = countSpots(&g, g.botRight(), incorner);
+    const tl_out = countSpots(&g, g.botRight(), outcorner);
+    const tr_in = countSpots(&g, g.botLeft(), incorner);
+    const tr_out = countSpots(&g, g.botLeft(), outcorner);
+    const bl_in = countSpots(&g, g.topRight(), incorner);
+    const bl_out = countSpots(&g, g.topRight(), outcorner);
+    const br_in = countSpots(&g, g.topLeft(), incorner);
+    const br_out = countSpots(&g, g.topLeft(), outcorner);
+
+    assert(gridlen & 1 == 1);
+
+    var p2: usize = 0;
+    const outer_parity_fulls = (gridlen + 1) * (gridlen + 1);
+    const inner_parity_fulls = (gridlen * gridlen);
+    p2 += outer_parity_fulls * full[0] + inner_parity_fulls * full[1];
+    p2 += right[end_parity] + left[end_parity] + up[end_parity] + down[end_parity];
+    p2 += (tl_out[out_parity] + bl_out[out_parity] + tr_out[out_parity] + br_out[out_parity]) * (gridlen);
+    p2 += (tl_in[in_parity] + bl_in[in_parity] + tr_in[in_parity] + br_in[in_parity]) * (gridlen + 1);
 
     print("p1: {}, p2: {}\n", .{ p1, p2 });
 }
